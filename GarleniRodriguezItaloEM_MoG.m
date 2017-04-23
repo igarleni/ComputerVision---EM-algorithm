@@ -169,8 +169,21 @@ while incr>tol && i<maxiter
     % Paso E actualizar las responsabilidades
     % INCLUIR EL CÓDIGO PARA LA ACTUALIZACIÓN DE LAS RESPONSABILIDADES
     
-                            
-     
+    % paso 6 mvnpdf.
+    % % Gausianas:
+        %mu = medias.  (:,1)<-Gaus1, (:,2)<-Gaus2 
+        %sigma = covarianzas. (:,:,1)<-Gaus1, (:,:,2)<-Gaus2 
+        %lamda = pesos (lambda(1) y lambda(2))
+    % % Puntos:
+        %lik = Responsabilidades
+        %X = puntos
+    denominator = zeros(length(x), 1);
+    for k = 1:size(x,2)
+        rik(:,k) = lambda(k)*mvnpdf(x,mu(:,k)',Sigma(:,:,k));
+        denominator = denominator + rik(:,k);
+    end
+    rik = bsxfun(@rdivide,rik,denominator);
+    
     % FIN DE CÓDIGO A INCLUIR PARA ACTUALIZAR LAS RESPONSABILIDADES
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -182,15 +195,31 @@ while incr>tol && i<maxiter
     % Paso M actualizar los pesos, medias y covarianzas de las 
     % distribuciones
     % INCLUIR CÓDIGO PARA ACTUALIZAR PESOS, MEDIAS Y MATRICES DE COVARIANZA
-                                                             
-    % Actualizo los pesos                                      
-                                            
-                                                               
-    % Actualizo las medias                                     
-                                    
-                                                               
-    % Actualizo las matrices de covarianza                     
-                                                           
+
+    % Actualizo los pesos
+    denominator = 0;
+    for k = 1:size(x,2)
+        lambda(k) = sum(rik(:,k));
+        denominator = denominator + lambda(k);
+    end
+    lambda = lambda / denominator;
+    
+    % Actualizo las medias
+    for k = 1:size(x,2)
+        mu(:,k) = sum( bsxfun(@times,rik(:,k), x(:,:) )) / sum(rik(:,k));
+    end
+    
+    % Actualizo las matrices de covarianza
+    for k = 1:size(x,2)
+        Sigma(:,:,k) = zeros(size(x,2),size(x,2));
+        aux = bsxfun(@minus, x(:,:), mu(:,k)' );
+        for l = 1:size(x,1)
+            Sigma(:,:,k) = Sigma(:,:,k) + rik(l,k) * (aux(l,:)' * aux(l,:));
+        end
+        Sigma(:,:,k) = Sigma(:,:,k) / sum(rik(:,k));
+    end
+    
+    
     % FIN DE CÓDIGO A INCLUIR PARA ACTUALIZAR PESOS, MEDIAS Y 
     % RESPONSABILIDADES
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
